@@ -87,9 +87,9 @@ if ($service -ne $null) {
 
 
         if ($proxy) {
-            $response = Invoke-WebRequest -Uri $uri -Method Get -Proxy ${proxyHost}:${proxyPort} -Headers $headers
+            $response = Invoke-WebRequest -UseBasicParsing -Uri $uri -Method Get -Proxy ${proxyHost}:${proxyPort} -Headers $headers
         } else {
-            $response = Invoke-WebRequest -Uri $uri -Method Get -Headers $headers
+            $response = Invoke-WebRequest -UseBasicParsing -Uri $uri -Method Get -Headers $headers
         }
 
         $response.StatusCode
@@ -103,9 +103,9 @@ if ($service -ne $null) {
         $uri = "https://"+ $controller + "/controller/alerting/rest/v1/applications/"+  $serverId + "/action-suppressions/action-suppression-by-name/?name=" + $name
 
         if ($proxy) {
-            $response = Invoke-WebRequest -Uri $uri -Method Get -Proxy ${proxyHost}:${proxyPort} -Headers $headers
+            $response = Invoke-WebRequest -UseBasicParsing -Uri $uri -Method Get -Proxy ${proxyHost}:${proxyPort} -Headers $headers
         } else {
-            $response = Invoke-WebRequest -Uri $uri -Method Get -Headers $headers
+            $response = Invoke-WebRequest -UseBasicParsing -Uri $uri -Method Get -Headers $headers
         }
 
         $response.StatusCode
@@ -123,7 +123,7 @@ if ($service -ne $null) {
         
 
         if ($proxy) {
-            $response = Invoke-WebRequest -Uri $uri -Method Delete -Proxy ${proxyHost}:${proxyPort} -Headers $headers -ErrorAction Stop
+            $response = Invoke-RestMethod -Uri $uri -Method Delete -Proxy ${proxyHost}:${proxyPort} -Headers $headers -ErrorAction Stop
         } else {
             $response = Invoke-RestMethod -Uri $uri -Method Delete -Headers $headers -ErrorAction Stop
         }
