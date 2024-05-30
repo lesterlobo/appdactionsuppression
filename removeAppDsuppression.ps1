@@ -6,8 +6,22 @@
 # Initiatize the connection parameters
 $controller = ""
 $serverId = ""
-$USERNAME = "lester.lobo@appdynamics.com"
-$PASSWORD = "Wearetheworld@3456"
+$USERNAME = ""
+$PASSWORD = ""
+
+$Logdir = "c:\zco\logs\"
+If (!(Test-Path -Path $Logdir)){New-Item $Logdir -ItemType directory}
+$LogfileName = "AppdSuppression"
+$Logfile = $Logdir+$LogfileName+".log"
+ 
+Function Write-Log {
+   Param ([string]$logstring)
+   #replace any nulls with spaces
+    $logstring = [regex]::Replace($logstring,[char]0,' ')
+ 
+$timestamp = (Get-Date -format g)
+   Add-content $Logfile -value ($timestamp + ": " + $logstring)
+}
 
 
 # Check if AppDynamics Machine Agent is running on this server to trigger action suppression.
@@ -18,17 +32,17 @@ $service = Get-Service -Name $serviceName -ErrorAction SilentlyContinue
 
 # Check if the service object exists and if it's running
 if ($service -ne $null) {
-    Write-Host "The service '$serviceName' is running."
+    Write-Log "The service '$serviceName' is running."
     # Obtain Machine Agent Install Path
     # Get the service object
     $serviceObject = Get-WmiObject -Class Win32_Service -Filter "Name='$serviceName'"
 
 
-    Write-Host "Service Path: $($serviceObject.PathName)"
+    Write-Log "Service Path: $($serviceObject.PathName)"
 
     # Use Split-Path to separate the path into its components
     $FilePath = (Split-Path -Path $($serviceObject.PathName)) + "\MachineAgentService.vmoptions"
-    Write-Host "Service Path: $FilePath"
+    Write-Log "Service Path: $FilePath"
 
     #$results = Select-String -Path $FilePath -Pattern "appdynamics.controller.hostName" -SimpleMatch
     $results = Get-Content $FilePath | Where-Object {$_ -like "*appdynamics.controller.hostName*"}
@@ -36,12 +50,12 @@ if ($service -ne $null) {
     if ($results -ne $null) {
 
         $controller = $results.split("=")[1]
-        Write-Host "Controller Host: $controller"
+        Write-Log "Controller Host: $controller"
 
         $results = Get-Content $FilePath | Where-Object {$_ -like "*appdynamics.agent.accountName*"}
         $accountName = $results.split("=")[1]
         $USERNAME = $USERNAME + "@" + $accountName
-        Write-Host "Controller Account: $accountName"
+        Write-Log "Controller Account: $accountName"
 
         $proxy = $false
 
@@ -49,12 +63,12 @@ if ($service -ne $null) {
         if ($results -ne $null) {
             $proxyHost = $results.split("=")[1]
             $proxy = $true
-            Write-Host "Controller Proxy Host: $proxyHost"
+            Write-Log "Controller Proxy Host: $proxyHost"
         }
         $results = Get-Content $FilePath | Where-Object {$_ -like "*appdynamics.http.proxyPort*"}
         if ($results -ne $null) {
             $proxyPort = $results.split("=")[1]
-            Write-Host "Controller Proxy Port: $proxyPort"
+            Write-Log "Controller Proxy Port: $proxyPort"
         }
 
         # Retrieve Server Application Id
@@ -82,7 +96,7 @@ if ($service -ne $null) {
         $response.Content   
         
         $serverId = ([xml]$response.Content).applications.application.id
-        Write-Host "Server ID: $serverId"    
+        Write-Log "Server ID: $serverId"    
         
         $name = "ChangeSuppression:" + $env:computername
 
@@ -100,7 +114,7 @@ if ($service -ne $null) {
         $jsonData = $response.Content | ConvertFrom-Json
     
         $suppressionID = $jsonData.id
-        Write-Host "Suppression ID: $suppressionID"   
+        Write-Log "Suppression ID: $suppressionID"   
 
         $uri = "https://" + $controller + "/controller/alerting/rest/v1/applications/" + $serverId + "/action-suppressions/" + $suppressionID
         
@@ -122,10 +136,10 @@ if ($service -ne $null) {
         
     
     } else {
-        Write-Host "Service Path: $FilePath"
+        Write-Log "Service Path: $FilePath"
     }
 
 } else {
-    Write-Host "The service '$serviceName' does not exist."
+    Write-Log "The service '$serviceName' does not exist."
 }  
  
