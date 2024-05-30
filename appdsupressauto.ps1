@@ -22,8 +22,6 @@ $timestamp = (Get-Date -format g)
    Add-content $Logfile -value ($timestamp + ": " + $logstring)
 }
 
-
-
 # Check if AppDynamics Machine Agent is running on this server to trigger action suppression.
 $serviceName = "Appdynamics Machine Agent"
 
@@ -36,7 +34,6 @@ if ($service -ne $null -and $service.Status -eq "Running") {
     # Obtain Machine Agent Install Path
     # Get the service object
     $serviceObject = Get-WmiObject -Class Win32_Service -Filter "Name='$serviceName'"
-
 
     Write-Log "Service Path: $($serviceObject.PathName)"
 
