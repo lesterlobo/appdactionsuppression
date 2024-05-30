@@ -1,4 +1,4 @@
-########################################################################################
+ ########################################################################################
 #### Powershell Script to suppress AppDynamics machine agent alerts for current server
 ########################################################################################
 
@@ -83,9 +83,9 @@ if ($service -ne $null -and $service.Status -eq "Running") {
         $uri
 
         if ($proxy) {
-            $response = Invoke-WebRequest -Uri $uri -Method Get -Proxy ${proxyHost}:${proxyPort} -Headers $headers
+            $response = Invoke-WebRequest -UseBasicParsing -Uri $uri -Method Get -Proxy ${proxyHost}:${proxyPort} -Headers $headers
         } else {
-            $response = Invoke-WebRequest -Uri $uri -Method Get -Headers $headers
+            $response = Invoke-WebRequest -UseBasicParsing -Uri $uri -Method Get -Headers $headers
         }
 
         $response.StatusCode
@@ -178,5 +178,6 @@ if ($service -ne $null -and $service.Status -eq "Running") {
   
  
  
- 
+  
+
 
