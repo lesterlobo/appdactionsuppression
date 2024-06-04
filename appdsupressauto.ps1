@@ -1,4 +1,4 @@
- ########################################################################################
+########################################################################################
 #### Powershell Script to suppress AppDynamics machine agent alerts for current server
 ########################################################################################
 
@@ -80,16 +80,13 @@ if ($service -ne $null -and $service.Status -eq "Running") {
         }
 
         $uri = "https://" + $controller + "/controller/rest/applications/Server%20%26%20Infrastructure%20Monitoring"
-        $uri
 
         if ($proxy) {
             $response = Invoke-WebRequest -UseBasicParsing -Uri $uri -Method Get -Proxy ${proxyHost}:${proxyPort} -Headers $headers
         } else {
             $response = Invoke-WebRequest -UseBasicParsing -Uri $uri -Method Get -Headers $headers
         }
-
-        $response.StatusCode
-        $response.Content   
+  
         
         $serverId = ([xml]$response.Content).applications.application.id
         Write-Log "Server ID: $serverId"    
@@ -128,7 +125,7 @@ if ($service -ne $null -and $service.Status -eq "Running") {
                         "patternMatcher" = @{
                             "matchValue" = $serverName
                             "shouldNot" = "false"
-                            "matchTo" = "EQUALS"
+                            "matchTo" = "STARTS_WITH"
                         }
         
                     }
@@ -148,18 +145,67 @@ if ($service -ne $null -and $service.Status -eq "Running") {
             'Authorization' = "Basic $encodedCredentials"
         }
         
-        
-        $jsonBody
 
-          # Make the POST request
+        # Make the POST request
         if ($proxy) {
-            $response = Invoke-RestMethod -Uri $uri -Method Post -Proxy ${proxyHost}:${proxyPort} -Body $jsonBody -Headers $headers
+            try {
+                $response = Invoke-RestMethod -Uri $uri -Method Post -Proxy ${proxyHost}:${proxyPort} -Body $jsonBody -Headers $headers
+            } catch {
+                # Handle Change already exist error;
+                if ($_.Exception.Response -ne $null) {
+                     $statusCode = [int]$_.Exception.Response.StatusCode
+                     if ($StatusCode -eq 409) {
+                        Write-Log "Change Suppression already exists, Going to Update existing Change Record"
+                        # Get id of change record
+                        $uri = "https://"+ $controller + "/controller/alerting/rest/v1/applications/"+  $serverId + "/action-suppressions/action-suppression-by-name/?name=" + $name
+                        $change =  Invoke-RestMethod -Uri $uri -Method Get -Proxy ${proxyHost}:${proxyPort} -Headers $headers
+                        $changeid = $change.id
+
+                        # Update change record
+                        if ($changeid -ne $null) {
+                            $uri = "https://"+ $controller + "/controller/alerting/rest/v1/applications/"+  $serverId + "/action-suppressions/" + $changeid
+                            $response = Invoke-RestMethod -Uri $uri -Method Put -Proxy ${proxyHost}:${proxyPort} -Body $jsonBody -Headers $headers
+                            $response
+                        }
+
+                     }
+                } else {
+                     Write-Log "An error occurred: $_"
+                }
+
+            }
         } else {
-            $response = Invoke-RestMethod -Uri $uri -Method Post -Body $jsonBody -Headers $headers
+            try {
+                $response = Invoke-RestMethod -Uri $uri -Method Post -Body $jsonBody -Headers $headers
+            } catch {
+                # Handle Change already exist error;
+                if ($_.Exception.Response -ne $null) {
+                     $statusCode = [int]$_.Exception.Response.StatusCode
+                     if ($StatusCode -eq 409) {
+                        Write-Log "Change Suppression already exists, Going to Update existing Change Record"
+                        # Get id of change record
+                        $uri = "https://"+ $controller + "/controller/alerting/rest/v1/applications/"+  $serverId + "/action-suppressions/action-suppression-by-name/?name=" + $name
+                        $change =  Invoke-RestMethod -Uri $uri -Method Get -Headers $headers
+                        $changeid = $change.id
+
+                        # Update change record
+                        if ($changeid -ne $null) {
+                            $uri = "https://"+ $controller + "/controller/alerting/rest/v1/applications/"+  $serverId + "/action-suppressions/" + $changeid
+                            $response = Invoke-RestMethod -Uri $uri -Method Put -Body $jsonBody -Headers $headers
+                            $response
+                        }
+
+                     }
+                } else {
+                     Write-Log "An error occurred: $_"
+                }
+
+            }
+
         }
         
         # Output the response
-        $response 
+        #$response 
  
     } else {
         Write-Log "Service Path: $FilePath"
@@ -178,6 +224,4 @@ if ($service -ne $null -and $service.Status -eq "Running") {
   
  
  
-  
-
-
+   
